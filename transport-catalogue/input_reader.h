@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <deque>
+#include <iostream>
 #include "geo.h"
 #include "transport_catalogue.h"
 
@@ -44,10 +45,37 @@ struct CommandDescription {
     std::string description;
 };
 /**
+ * Расстояние до остановки
+ */
+struct DistanceDescription {
+    /**
+     * Определяет, задано ли расстояние (поле stop_name непустое)
+     */
+    explicit operator bool() const {
+        return !stop_name.empty();
+    }
+    bool operator!() const {
+        return !operator bool();
+    }
+    /**
+     * Наименование остановки
+     */
+    std::string stop_name;
+    /**
+     * Расстояние до остановки
+     */
+    int distance = 0;
+};
+std::vector<DistanceDescription> ParseDistances(std::string_view str);
+/**
  * Интерфейс для ввода данных
  */
 class InputReader {
 public:
+    /**
+     * Чтение данных из потока
+     */
+    void ReadInput(std::istream &input);
     /**
      * Парсит строку в структуру CommandDescription и сохраняет результат в commands_
      */

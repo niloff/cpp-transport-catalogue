@@ -59,6 +59,10 @@ struct BusInfo {
      * Длина маршрута
      */
     double route_length = 0;
+    /**
+     * Извилистость маршрута
+     */
+    double curvature = 0;
 };
 /**
  * Статистика по остановке

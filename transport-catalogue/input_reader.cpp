@@ -86,6 +86,26 @@ geo::Coordinates ParseCoordinates(std::string_view str) {
     return {lat, lng};
 }
 /**
+ * Парсит строку вида "55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino"
+ * и возвращает вектор с расстояниями до остановок
+ */
+std::vector<DistanceDescription> ParseDistances(std::string_view str) {
+    std::vector<DistanceDescription> distances;
+    for (auto delim = str.find("m to "); delim != str.npos; delim = str.find("m to ", delim)) {
+        // парсим расстояние
+        auto comma = str.rfind(',', delim);
+        auto pos_start = str.find_first_not_of(' ', comma + 1);
+        int distance = std::stoi(std::string(str.substr(pos_start, delim - pos_start)));
+        // парсим название остановки
+        delim += 5;
+        comma = str.find_first_of(',', delim);
+        auto pos_end = comma != str.npos ? comma - delim : str.npos;
+        auto stop_name = utils::Trim(str.substr(delim, pos_end));
+        distances.push_back({std::string(stop_name), distance});
+    }
+    return distances;
+}
+/**
  * Парсинг команды-запроса из строки
  */
 CommandDescription ParseCommandDescription(std::string_view line) {
@@ -109,6 +129,19 @@ CommandDescription ParseCommandDescription(std::string_view line) {
             std::string(line.substr(colon_pos + 1))};
 }
 /**
+ * Чтение данных из потока
+ */
+void InputReader::ReadInput(std::istream& input) {
+    int base_request_count;
+    input >> base_request_count >> std::ws;
+    if (base_request_count <= 0) return;
+    for (int i = 0; i < base_request_count; ++i) {
+        std::string line;
+        std::getline(input, line);
+        ParseLine(line);
+    }
+}
+/**
  * Парсит строку в структуру CommandDescription и сохраняет результат в commands_
  */
 void InputReader::ParseLine(std::string_view line) {
@@ -125,9 +158,21 @@ void InputReader::ApplyCommands([[maybe_unused]] catalogue::TransportCatalogue &
     auto it = name_to_commands_.find(CommandDescription::COMMAND_NAME_STOP);
     if (it != name_to_commands_.end()) {
         const auto& stops_commands = it->second;
+        // добавляем остановки
         for(const auto& command : stops_commands) {
             const geo::Coordinates& coordinates = ParseCoordinates(command->description);
             catalogue.AddStop(command->id, coordinates);
+        }
+        //добавляем расстояния между остановками
+        for(const auto& command : stops_commands) {
+            const auto& distances = ParseDistances(command->description);
+            if (distances.empty()) continue;
+            const auto from = catalogue.FindStop(command->id);
+            for (auto distance : distances) {
+                const auto to = catalogue.FindStop(distance.stop_name);
+                if (to == nullptr) continue;
+                catalogue.SetDistance(from, to, distance.distance);
+            }
         }
     }
     // разбираем маршруты

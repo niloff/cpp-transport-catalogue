@@ -25,16 +25,22 @@ QueryDescription ParseQuery(std::string_view line) {
             std::string(line.substr(not_space))};
 }
 
-void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue, std::string_view request,
+void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue, std::istream &input,
                        std::ostream& output) {
-    QueryDescription query_desc = ParseQuery(request);
-    if (!query_desc) return;
-    if (query_desc.query == QueryDescription::QUERY_NAME_BUS) {
-        PrintRoute(query_desc.id, transport_catalogue, output);
-        return;
-    }
-    if (query_desc.query == QueryDescription::QUERY_NAME_STOP) {
-        PrintStop(query_desc.id, transport_catalogue, output);
+    int stat_request_count;
+    input >> stat_request_count >> std::ws;
+    for (int i = 0; i < stat_request_count; ++i) {
+        std::string line;
+        getline(input, line);
+        QueryDescription query_desc = ParseQuery(line);
+        if (!query_desc) continue;
+        if (query_desc.query == QueryDescription::QUERY_NAME_BUS) {
+            PrintRoute(query_desc.id, transport_catalogue, output);
+            continue;
+        }
+        if (query_desc.query == QueryDescription::QUERY_NAME_STOP) {
+            PrintStop(query_desc.id, transport_catalogue, output);
+        }
     }
 }
 
@@ -46,8 +52,10 @@ void PrintRoute(const std::string& bus_number, const catalogue::TransportCatalog
         return;
     }
     out << "Bus " << bus_number << ": " << stat->stops_count << " stops on route, "
-        << stat->unique_stops_count << " unique stops, " << std::setprecision(6)
-        << stat->route_length << " route length\n";
+        << stat->unique_stops_count << " unique stops, "
+        << stat->route_length << " route length, "
+        << std::setprecision(6)
+        << stat->curvature << " curvature\n";
 }
 
 void PrintStop(const std::string& stop_name, const catalogue::TransportCatalogue& catalogue, std::ostream& out)  {

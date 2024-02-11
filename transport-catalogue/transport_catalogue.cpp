@@ -79,15 +79,19 @@ BusInfo* TransportCatalogue::GetBusInfo(std::string_view bus_number) const {
     bus_stat = new BusInfo;
     bus_stat->stops_count = bus->stops.size();
     std::unordered_set<std::string_view> unique_stops;
+    double geo_length = 0.0;
     for (size_t i = 0; i < bus->stops.size() - 1; ++i) {
         const auto from = bus->stops[i];
         const auto to = bus->stops[i + 1];
-        const double distance = ComputeDistance(from->coordinates, to->coordinates);
-        bus_stat->route_length += distance;
+        const double geo_distance = ComputeDistance(from->coordinates, to->coordinates);
+        auto route_distance = GetDistance(from, to);
+        bus_stat->route_length += route_distance != 0 ? route_distance : geo_distance;
+        geo_length += geo_distance;
         unique_stops.insert(from->name);
         unique_stops.insert(to->name);
     }
     bus_stat->unique_stops_count = unique_stops.size();
+    bus_stat->curvature = bus_stat->route_length / geo_length;
     return bus_stat;
 }
 /**

@@ -36,7 +36,7 @@ struct QueryDescription {
     std::string id;
 };
 
-void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue, std::string_view request,
+void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue, std::istream& input,
                        std::ostream& output);
 
 void PrintRoute(const std::string& bus_number, const catalogue::TransportCatalogue& catalogue, std::ostream& out);
