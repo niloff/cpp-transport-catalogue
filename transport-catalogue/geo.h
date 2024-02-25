@@ -24,34 +24,24 @@ struct Coordinates {
      * Долгота
      */
     double lng;
-    bool operator==(const Coordinates& other) const {
-        return lat == other.lat && lng == other.lng;
-    }
-    bool operator!=(const Coordinates& other) const {
-        return !(*this == other);
-    }
+    // Перегрузка операторов
+    bool operator==(const Coordinates& other) const;
+    bool operator!=(const Coordinates& other) const;
 };
 /**
  * Хэш географических координат
  */
 struct CoordinatesHash {
-    size_t operator() (const Coordinates& coordinates) const noexcept {
-        return hasher_(coordinates.lat) + hasher_(coordinates.lng) * 37;
-    }
+    /**
+     * Хэш географических координат
+     */
+    size_t operator() (const Coordinates& coordinates) const noexcept;
 private:
     std::hash<double> hasher_;
 };
 /**
  * Вычислить расстояние между двумя точками с географическими координатами
  */
-inline double ComputeDistance(Coordinates from, Coordinates to) {
-    using namespace std;
-    if (from == to) {
-        return 0;
-    }
-    return acos(sin(from.lat * DR) * sin(to.lat * DR)
-                + cos(from.lat * DR) * cos(to.lat * DR) * cos(abs(from.lng - to.lng) * DR))
-        * EARTH_RADIUS;
-}
+double ComputeDistance(Coordinates from, Coordinates to);
 
 }
