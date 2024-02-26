@@ -5,7 +5,6 @@
 #include <iostream>
 
 class JsonReader {
-public:
     /**
      * Ключ запросов - Массив с описанием автобусных маршрутов и остановок
      */
@@ -18,39 +17,43 @@ public:
      * Ключ запросов - Настройки рендеринга
      */
     static const char* KEY_RENDER_SETTINGS;
+public:
     /**
      * Чтение данных из потока
      */
     void ReadInput(std::istream &input);
     /**
+     * Наполняет данными транспортный справочник в соответствии с запросами
+     */
+    void UploadData(RequestHandler& handler);
+    /**
+     * Вывод информации в соответствии со считанными запросами.
+     */
+    void PrintResponses(RequestHandler& handler, std::ostream& output);
+    /**
+     * Получить считанные настройки для рендеринга
+     */
+    renderer::RenderSettings GetRenderSettings();
+private:
+    /**
      * Получить запросы по ключу
      */
     const json::Node* GetRequests(const char* request_key) const;
     /**
-     * Наполняет данными транспортный справочник в соответствии с запросами
-     */
-    static void UploadData(transport::Catalogue& catalogue, const json::Node* requests);
-    /**
-     * Возвращает статистику в соответствии с запросами
-     */
-    static void GetStatInfo(RequestHandler& handler, const json::Node* requests);
-    /**
-     * Парсит настройки для рендеринга
-     */
-    static renderer::MapRenderer ParseRenderSettings(const json::Node* settings);
-private:
-    /**
      * Вывод информации о маршруте
      */
-    static const json::Node PrintRoute(const json::Node& request_map, RequestHandler& rh);
+    static const json::Node PrintRoute(const json::Node& request_map, RequestHandler& handler);
     /**
      * Вывод информации об остановке
      */
-    static const json::Node PrintStop(const json::Node& request_map, RequestHandler& rh);
+    static const json::Node PrintStop(const json::Node& request_map, RequestHandler& handler);
     /**
      * Вывод изображения
      */
-    static const json::Node PrintMap(const json::Node& request_map, RequestHandler& rh);
+    static const json::Node PrintMap(const json::Node& request_map, RequestHandler& handler);
 private:
+    /**
+     * Считанные запросы
+     */
     json::Dict commands_;
 };

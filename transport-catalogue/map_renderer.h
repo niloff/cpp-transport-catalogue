@@ -95,7 +95,7 @@ struct RenderSettings {
     std::vector<svg::Color> color_palette {};
 };
 /**
- * Класс рендеринга маршрутов транспортного справочника
+ * Средство визуализации маршрутов транспортного справочника
  */
 class MapRenderer {
 public:

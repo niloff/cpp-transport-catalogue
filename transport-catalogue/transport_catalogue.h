@@ -29,19 +29,12 @@ public:
     /**
      * Добавить остановку в каталог
      */
-    void AddStop(std::string_view stop_name, const geo::Coordinates& coordinates);
+    void AddStop(const Stop& stop);
     /**
      * Добавить маршрут в каталог
      */
     void AddRoute(std::string_view bus_number,
                   const std::vector<const transport::Stop*>& stops,
-                  bool is_roundtrip);
-    /**
-     * Добавить маршрут в каталог
-     * Версия с вектором имен остановок
-     */
-    void AddRoute(std::string_view bus_number,
-                  const std::vector<std::string_view>& stop_names,
                   bool is_roundtrip);
     /**
      * Найти маршрут по его номеру
@@ -52,13 +45,9 @@ public:
      */
     const transport::Stop* FindStop(std::string_view stop_name) const;
     /**
-     * Статистика по автобусу
-     */
-    std::optional<transport::BusInfo> GetBusInfo(std::string_view bus_number) const;
-    /**
      * Статистика по остановке
      */
-    const transport::StopInfo* GetBusesByStop(std::string_view stop_name) const;
+    const transport::StopInfo* GetBusesByStop(const Stop* stop) const;
     /**
      * Получить каталог из отсортированных по номерам маршрутов.
      * Выводяться только непустые маршруты (с остановками)
@@ -67,20 +56,14 @@ public:
     /**
      * Установить расстояние между двумя остановками
      */
-    void SetDistance(std::string_view from,
-                     std::string_view to,
+    void SetDistance(const transport::Stop* from,
+                     const transport::Stop* to,
                      int distance);
-private:
     /**
      * Получить расстояние между двумя остановками
      */
     int GetDistance(const transport::Stop* from, const transport::Stop* to) const;
-    /**
-     * Установить расстояние между двумя остановками
-     */
-    void SetDistance(const transport::Stop* from,
-                     const transport::Stop* to,
-                     int distance);
+private:
 
     struct DistanceHasher {
         size_t operator() (const std::pair<const transport::Stop*, const transport::Stop*>& stops) const noexcept {

@@ -99,26 +99,17 @@ void JsonReader::ReadInput(std::istream &input) {
     commands_ = doc.GetRoot().AsMap();
 }
 /**
- * Получить запросы по ключу
- */
-const json::Node* JsonReader::GetRequests(const char* request_key) const {
-    auto it = commands_.find(request_key);
-    if (it != commands_.end()) {
-        return &it->second;
-    }
-    return nullptr;
-}
-/**
  * Наполняет данными транспортный справочник, используя команды из commands_
  */
-void JsonReader::UploadData(transport::Catalogue& catalogue, const json::Node* requests) {
+void JsonReader::UploadData(RequestHandler& handler) {
     using namespace std::literals;
+    const json::Node* requests = GetRequests(KEY_BASE_REQUESTS);
     if (requests == nullptr) return;
     // ищем массив с маршрутами и остановками
     const auto& commands_stops = CommandsFromNode(requests, "Stop"s);
     // разбираем остановки
     for (const auto& command : commands_stops) {
-        catalogue.AddStop(command->at("name"s).AsString(),
+        handler.AddStop(command->at("name"s).AsString(),
                           {command->at("latitude"s).AsDouble(),
                            command->at("longitude"s).AsDouble()});
     }
@@ -128,7 +119,7 @@ void JsonReader::UploadData(transport::Catalogue& catalogue, const json::Node* r
         auto& distances = command->at("road_distances"s).AsMap();
         auto stop_from = command->at("name"s).AsString();
         for (auto& [stop_to, distance] : distances) {
-            catalogue.SetDistance(stop_from, stop_to, distance.AsInt());
+            handler.SetDistance(stop_from, stop_to, distance.AsInt());
         }
     }
     // разбираем маршруты
@@ -137,14 +128,15 @@ void JsonReader::UploadData(transport::Catalogue& catalogue, const json::Node* r
         std::string_view bus_number = command->at("name"s).AsString();
         bool circular_route = command->at("is_roundtrip"s).AsBool();
         const auto& stops = RouteFromNode(command->at("stops"s), circular_route);
-        catalogue.AddRoute(bus_number, stops, circular_route);
+        handler.AddRoute(bus_number, stops, circular_route);
     }
 }
 /**
  * Возвращает статистику в соответствии с запросами
  */
-void JsonReader::GetStatInfo(RequestHandler& handler, const json::Node* requests) {
+void JsonReader::PrintResponses(RequestHandler& handler, std::ostream &output) {
     using namespace std::literals;
+    const json::Node* requests = GetRequests(KEY_STAT_REQUESTS);
     if (requests == nullptr) return;
     std::vector<json::Node> result;
     for (auto& request : requests->AsArray()) {
@@ -159,12 +151,16 @@ void JsonReader::GetStatInfo(RequestHandler& handler, const json::Node* requests
             result.emplace_back(PrintMap(request, handler).AsMap());
         }
     }
-    json::Print(json::Document{ result }, std::cout);
+    json::Print(json::Document{ result }, output);
 }
 /**
  * Парсит настройки для рендеринга
  */
-renderer::MapRenderer JsonReader::ParseRenderSettings(const json::Node *settings) {
+renderer::RenderSettings JsonReader::GetRenderSettings() {
+    const json::Node* settings = GetRequests(KEY_RENDER_SETTINGS);
+    if (settings == nullptr) {
+        return {};
+    }
     json::Dict settings_map = settings->AsMap();
     renderer::RenderSettings render_settings;
     render_settings.width = settings_map.at("width").AsDouble();
@@ -185,14 +181,24 @@ renderer::MapRenderer JsonReader::ParseRenderSettings(const json::Node *settings
     return render_settings;
 }
 /**
+ * Получить запросы по ключу
+ */
+const json::Node* JsonReader::GetRequests(const char* request_key) const {
+    auto it = commands_.find(request_key);
+    if (it != commands_.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+/**
  * Вывод информации о маршруте
  */
-const json::Node JsonReader::PrintRoute(const json::Node& request_map, RequestHandler& rh) {
+const json::Node JsonReader::PrintRoute(const json::Node& request_map, RequestHandler& handler) {
     using namespace std::literals;
     json::Dict result;
     const std::string& route_number = request_map.AsMap().at("name"s).AsString();
     result["request_id"s] = request_map.AsMap().at("id"s).AsInt();
-    auto bus_info = rh.GetBusStat(route_number);
+    auto bus_info = handler.GetBusStat(route_number);
     if (!bus_info) {
         result["error_message"s] = json::Node{ static_cast<std::string>("not found"s) };
     }
@@ -207,12 +213,12 @@ const json::Node JsonReader::PrintRoute(const json::Node& request_map, RequestHa
 /**
  * Вывод информации об остановке
  */
-const json::Node JsonReader::PrintStop(const json::Node& request_map, RequestHandler& rh) {
+const json::Node JsonReader::PrintStop(const json::Node& request_map, RequestHandler& handler) {
     using namespace std::literals;
     json::Dict result;
     const std::string& stop_name = request_map.AsMap().at("name"s).AsString();
     result["request_id"s] = request_map.AsMap().at("id"s).AsInt();
-    auto stops_info = rh.GetBusesByStop(stop_name);
+    auto stops_info = handler.GetBusesByStop(stop_name);
     if (!stops_info) {
         result["error_message"s] = json::Node{ static_cast<std::string>("not found"s) };
     }
@@ -232,13 +238,12 @@ const json::Node JsonReader::PrintStop(const json::Node& request_map, RequestHan
 /**
  * Вывод изображения
  */
-const json::Node JsonReader::PrintMap(const json::Node& request_map, RequestHandler& rh) {
+const json::Node JsonReader::PrintMap(const json::Node& request_map, RequestHandler& handler) {
     using namespace std::literals;
     json::Dict result;
     result["request_id"s] = request_map.AsMap().at("id"s).AsInt();
     std::ostringstream strm;
-    svg::Document map = rh.RenderMap();
-    map.Render(strm);
+    handler.RenderMap(strm);
     result["map"s] = strm.str();
     return json::Node{ result };
 }

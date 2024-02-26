@@ -13,7 +13,23 @@ public:
     /**
      * Конструктор
      */
-    RequestHandler(const transport::Catalogue& db, const renderer::MapRenderer& renderer);
+    RequestHandler(const renderer::MapRenderer& renderer);
+    /**
+     * Добавить остановку в каталог
+     */
+    void AddStop(std::string_view stop_name, const geo::Coordinates &coordinates);
+    /**
+     * Добавить маршрут в каталог
+     */
+    void AddRoute(std::string_view bus_number,
+                  const std::vector<std::string_view>& stop_names,
+                  bool is_roundtrip);
+    /**
+     * Установить расстояние между двумя остановками
+     */
+    void SetDistance(std::string_view from,
+                     std::string_view to,
+                     int distance);
     /**
      * Возвращает информацию о маршруте (запрос Bus)
      */
@@ -25,11 +41,11 @@ public:
     /**
      * Отрисовка карты
      */
-    svg::Document RenderMap() const;
+    void RenderMap(std::ostream &output) const;
 
 private:
     // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
-    const transport::Catalogue& db_;
+    transport::Catalogue db_;
     const renderer::MapRenderer& renderer_;
 };
 
