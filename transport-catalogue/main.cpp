@@ -4,7 +4,6 @@
 //#include <fstream>
 
 int main() {
-    transport::Catalogue catalogue;
     JsonReader json_doc;
     // разбираем данные из потока
 //    std::ifstream base_input("s10_final_opentest_2.json");
