@@ -138,20 +138,20 @@ void JsonReader::PrintResponses(RequestHandler& handler, std::ostream &output) {
     using namespace std::literals;
     const json::Node* requests = GetRequests(KEY_STAT_REQUESTS);
     if (requests == nullptr) return;
-    std::vector<json::Node> result;
+    std::vector<json::Node> responses;
     for (auto& request : requests->AsArray()) {
         const auto& type = request.AsMap().at("type"s).AsString();
         if (type == "Stop"s) {
-            result.emplace_back(PrintStop(request, handler).AsMap());
+            responses.emplace_back(PrintStop(request, handler).AsMap());
         }
         else if (type == "Bus"s) {
-            result.emplace_back(PrintRoute(request, handler).AsMap());
+            responses.emplace_back(PrintRoute(request, handler).AsMap());
         }
         else if (type == "Map"s) {
-            result.emplace_back(PrintMap(request, handler).AsMap());
+            responses.emplace_back(PrintMap(request, handler).AsMap());
         }
     }
-    json::Print(json::Document{ result }, output);
+    json::Print(json::Document{ responses }, output);
 }
 /**
  * Парсит настройки для рендеринга

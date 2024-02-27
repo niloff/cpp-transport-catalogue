@@ -11,7 +11,9 @@ namespace renderer {
 
 inline const double EPSILON = 1e-6;
 bool IsZero(double value);
-
+/**
+ * Проектор сферических координат на карту
+ */
 class SphereProjector {
 public:
     // points_begin и points_end задают начало и конец интервала элементов geo::Coordinates
@@ -107,31 +109,36 @@ public:
     /**
      * Возвращает ломаные линии маршрутов
      */
-    std::vector<svg::Polyline> GetRouteLines(const std::vector<const transport::Bus*>& buses, const SphereProjector& sp) const;
+    std::vector<svg::Polyline> GetRouteLines(const std::vector<const transport::Bus*>& buses, const SphereProjector& projector) const;
     /**
      * Возвращает названия маршрутов
      */
-    std::vector<svg::Text> GetRoutesLabels(const std::vector<const transport::Bus*>& buses, const SphereProjector& sp) const;
+    std::vector<svg::Text> GetRoutesLabels(const std::vector<const transport::Bus*>& buses, const SphereProjector& projector) const;
     /**
      * Возвращает круги, обозначающие остановки
      */
-    std::vector<svg::Circle> GetStopsSymbols(const std::vector<const transport::Stop*>& stops, const SphereProjector& sp) const;
+    std::vector<svg::Circle> GetStopsSymbols(const std::vector<const transport::Stop*>& stops, const SphereProjector& projector) const;
     /**
      * Возвращает названия остановок
      */
-    std::vector<svg::Text> GetStopsLabels(const std::vector<const transport::Stop*>& stops, const SphereProjector& sp) const;
+    std::vector<svg::Text> GetStopsLabels(const std::vector<const transport::Stop*>& stops, const SphereProjector& projector) const;
     /**
      * Возвращает векторное изображение маршрутов каталога
      */
     svg::Document GetSVG(const std::vector<const transport::Bus*>& buses,
-                         const std::vector<const transport::Stop*>& stops,
-                         const std::vector<geo::Coordinates>& route_stops_coord) const;
+                         const std::vector<const transport::Stop*>& stops) const;
+private:
+    /**
+     * Возвращает проектор сферических координат на карту.
+     * Создается на основе координат остановок.
+     */
+    SphereProjector BuildProjector(const std::vector<const transport::Stop*>& stops) const;
 
 private:
     /**
      * Настройки рендеринга
      */
-    const RenderSettings render_settings_;
+    const RenderSettings& render_settings_;
 };
 
 } // namespace renderer
