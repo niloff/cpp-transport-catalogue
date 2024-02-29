@@ -29,59 +29,19 @@ public:
 /**
  * Узел JSON-файла
  */
-class Node final {
+class Node final : private std::variant<std::nullptr_t, std::string, int, double, bool, Array, Dict> {
 public:
+    using variant::variant;
     /**
      * Значение узла.
      * Здесь задаем поддерживаемые типы данных для значения
      */
-    using Value = std::variant<std::nullptr_t, std::string, int, double, bool, Array, Dict>;
+    using Value = variant;
     /**
-     * Конструктор по-умолчанию
+     * Конструктор ноды
      */
-    Node() = default;
-    /**
-     * Конструктор ноды.
-     * Тип данных - нулевой указатель
-     */
-    Node(std::nullptr_t) :
-        value_(nullptr) { }
-    /**
-     * Конструктор ноды.
-     * Тип данных - integer
-     */
-    Node(int val) :
-        value_(val) { }
-    /**
-     * Конструктор ноды.
-     * Тип данных - double
-     */
-    Node(double val) :
-        value_(val) { }
-    /**
-     * Конструктор ноды.
-     * Тип данных - строка
-     */
-    Node(std::string val) :
-        value_(std::move(val)) { }
-    /**
-     * Конструктор ноды.
-     * Тип данных - массив из узлов JSON
-     */
-    Node(Array val) :
-        value_(std::move(val)) { }
-    /**
-     * Конструктор ноды.
-     * Тип данных - словарь из узлов JSON
-     */
-    Node(Dict val) :
-        value_(std::move(val)) { }
-    /**
-     * Конструктор ноды.
-     * Тип данных - boolean
-     */
-    Node(bool val) :
-        value_(val) { }
+    Node(Value value) :
+        variant(std::move(value)) { }
     /**
      * Хранится ли в узле значение типа integer
      */
@@ -143,14 +103,13 @@ public:
      */
     const Value& GetValue() const;
     /**
+     *  Извлечь данные узла
+     */
+    Value &GetValue();
+    /**
      * Перегрузка оператора
      */
     bool operator==(const Node& rhs) const;
-private:
-    /**
-     * Хранимое значение узла JSON
-     */
-    Value value_;
 };
 /**
  * Перегрузка оператора

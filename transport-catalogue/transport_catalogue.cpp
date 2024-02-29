@@ -57,7 +57,7 @@ const transport::StopInfo* Catalogue::GetBusesByStop(const Stop* stop) const {
 }
 /**
  * Массив из отсортированных по номерам маршрутов.
- * Выводяться только непустые маршруты (с остановками)
+ * Выводятся только непустые маршруты (с остановками)
  */
 const std::vector<const Bus*> Catalogue::GetSortedBuses() const {
     std::map<std::string_view, const Bus*> sorted_buses(busname_to_bus_.begin(),

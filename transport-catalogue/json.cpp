@@ -7,13 +7,13 @@ namespace json {
  * Хранится ли в узле значение типа integer
  */
 bool Node::IsInt() const {
-    return holds_alternative<int>(value_);
+    return holds_alternative<int>(*this);
 }
 /**
  * Хранится ли в узле значение типа double
  */
 bool Node::IsPureDouble() const {
-    return holds_alternative<double>(value_);
+    return holds_alternative<double>(*this);
 }
 /**
  * Хранится ли в узле значение типа integer или double
@@ -25,31 +25,31 @@ bool Node::IsDouble() const {
  * Хранится ли в узле значение типа boolean
  */
 bool Node::IsBool() const {
-    return holds_alternative<bool>(value_);
+    return holds_alternative<bool>(*this);
 }
 /**
  * Хранится ли в узле значение строкового типа
  */
 bool Node::IsString() const {
-    return holds_alternative<std::string>(value_);
+    return holds_alternative<std::string>(*this);
 }
 /**
  * Хранится ли в узле значение null
  */
 bool Node::IsNull() const {
-    return holds_alternative<std::nullptr_t>(value_);
+    return holds_alternative<std::nullptr_t>(*this);
 }
 /**
  * Хранится ли в узле значение типа Массив из узлов JSON
  */
 bool Node::IsArray() const {
-    return holds_alternative<Array>(value_);
+    return holds_alternative<Array>(*this);
 }
 /**
  * Хранится ли в узле значение типа Словарь из узлов JSON
  */
 bool Node::IsMap() const {
-    return holds_alternative<Dict>(value_);
+    return holds_alternative<Dict>(*this);
 }
 /**
  * Данные как integer
@@ -59,7 +59,7 @@ int Node::AsInt() const {
     if (!IsInt()) {
         throw logic_error("Node value is not int"s);
     }
-    return std::get<int>(value_);
+    return std::get<int>(*this);
 }
 /**
  * Данные как boolean
@@ -69,7 +69,7 @@ bool Node::AsBool() const {
     if (!IsBool()) {
         throw logic_error("Node value is not bool"s);
     }
-    return std::get<bool>(value_);
+    return std::get<bool>(*this);
 }
 /**
  * Данные как double
@@ -79,7 +79,7 @@ double Node::AsDouble() const {
     if (!IsDouble()) {
         throw std::logic_error("Node value is not double"s);
     }
-    return IsPureDouble() ? std::get<double>(value_) : AsInt();
+    return IsPureDouble() ? std::get<double>(*this) : AsInt();
 }
 /**
  * Данные как строка
@@ -89,7 +89,7 @@ const std::string& Node::AsString() const {
     if (!IsString()) {
         throw logic_error("Node value is not string"s);
     }
-    return std::get<std::string>(value_);
+    return std::get<std::string>(*this);
 }
 /**
  * Данные как массив из узлов JSON
@@ -99,7 +99,7 @@ const Array& Node::AsArray() const {
     if (!IsArray()) {
         throw logic_error("Node value is not array"s);
     }
-    return std::get<Array>(value_);
+    return std::get<Array>(*this);
 }
 /**
  * Данные как словарь из узлов JSON
@@ -109,19 +109,25 @@ const Dict& Node::AsMap() const {
     if (!IsMap()) {
         throw logic_error("Node value is not map"s);
     }
-    return std::get<Dict>(value_);
+    return std::get<Dict>(*this);
 }
 /**
  * Извлечь данные узла
  */
 const Node::Value& Node::GetValue() const {
-    return value_;
+    return *this;
+}
+/**
+ *  Извлечь данные узла
+ */
+Node::Value& Node::GetValue() {
+    return *this;
 }
 /**
  * Перегрузка оператора
  */
 bool Node::operator==(const Node& rhs) const {
-    return value_ == rhs.value_;
+    return GetValue() == rhs.GetValue();
 }
 /**
  * Перегрузка оператора

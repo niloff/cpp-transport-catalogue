@@ -37,7 +37,7 @@ public:
     /**
      * Возвращает маршруты, проходящие через остановку
      */
-    const std::unordered_set<transport::Bus*>* GetBusesByStop(const std::string_view& stop_name) const;
+    std::optional<std::vector<std::string>> GetBusesByStop(const std::string_view& stop_name) const;
     /**
      * Отрисовка карты
      */

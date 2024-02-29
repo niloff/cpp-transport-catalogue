@@ -50,7 +50,7 @@ public:
     const transport::StopInfo* GetBusesByStop(const Stop* stop) const;
     /**
      * Массив из отсортированных по номерам маршрутов.
-     * Выводяться только непустые маршруты (с остановками)
+     * Выводятся только непустые маршруты (с остановками)
      */
     const std::vector<const Bus*> GetSortedBuses() const;
     /**

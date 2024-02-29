@@ -1,4 +1,5 @@
 #include "json_reader.h"
+#include "json_builder.h"
 #include <sstream>
 /*
  * Здесь можно разместить код наполнения транспортного справочника данными из JSON,
@@ -138,7 +139,7 @@ void JsonReader::PrintResponses(RequestHandler& handler, std::ostream &output) {
     using namespace std::literals;
     const json::Node* requests = GetRequests(KEY_STAT_REQUESTS);
     if (requests == nullptr) return;
-    std::vector<json::Node> responses;
+    json::Array responses;
     for (auto& request : requests->AsArray()) {
         const auto& type = request.AsMap().at("type"s).AsString();
         if (type == "Stop"s) {
@@ -195,55 +196,62 @@ const json::Node* JsonReader::GetRequests(const char* request_key) const {
  */
 const json::Node JsonReader::PrintRoute(const json::Node& request_map, RequestHandler& handler) {
     using namespace std::literals;
-    json::Dict result;
     const std::string& route_number = request_map.AsMap().at("name"s).AsString();
-    result["request_id"s] = request_map.AsMap().at("id"s).AsInt();
+    const int request_id = request_map.AsMap().at("id"s).AsInt();
     auto bus_info = handler.GetBusStat(route_number);
     if (!bus_info) {
-        result["error_message"s] = json::Node{ static_cast<std::string>("not found"s) };
+        return json::Builder{}
+                    .StartDict()
+                        .Key("request_id").Value(request_id)
+                        .Key("error_message").Value("not found")
+                    .EndDict()
+                .Build();
     }
-    else {
-        result["curvature"s] = bus_info->curvature;
-        result["route_length"s] = bus_info->route_length;
-        result["stop_count"s] = static_cast<int>(bus_info->stops_count);
-        result["unique_stop_count"s] = static_cast<int>(bus_info->unique_stops_count);
-    }
-    return json::Node{ result };
+    return json::Builder{}
+                .StartDict()
+                    .Key("request_id").Value(request_id)
+                    .Key("curvature").Value(bus_info->curvature)
+                    .Key("route_length").Value(bus_info->route_length)
+                    .Key("stop_count").Value(static_cast<int>(bus_info->stops_count))
+                    .Key("unique_stop_count").Value(static_cast<int>(bus_info->unique_stops_count))
+                .EndDict()
+            .Build();
 }
 /**
  * Вывод информации об остановке
  */
 const json::Node JsonReader::PrintStop(const json::Node& request_map, RequestHandler& handler) {
     using namespace std::literals;
-    json::Dict result;
     const std::string& stop_name = request_map.AsMap().at("name"s).AsString();
-    result["request_id"s] = request_map.AsMap().at("id"s).AsInt();
-    auto stops_info = handler.GetBusesByStop(stop_name);
-    if (!stops_info) {
-        result["error_message"s] = json::Node{ static_cast<std::string>("not found"s) };
+    const int request_id = request_map.AsMap().at("id"s).AsInt();
+    auto buses = handler.GetBusesByStop(stop_name);
+    if (!buses) {
+        return json::Builder{}
+                    .StartDict()
+                        .Key("request_id"s).Value(request_id)
+                        .Key("error_message"s).Value("not found"s)
+                    .EndDict()
+                .Build();
     }
-    else {
-        std::set<std::string> sorted_routes;
-        for (auto info : *stops_info) {
-            sorted_routes.insert(info->route);
-        }
-        json::Array buses;
-        for (auto& bus : sorted_routes) {
-            buses.push_back(bus);
-        }
-        result["buses"s] = buses;
-    }
-    return json::Node{ result };
+    return json::Builder{}
+                .StartDict()
+                    .Key("request_id"s).Value(request_id)
+                    .Key("buses"s).Value(json::Array(buses->begin(), buses->end()))
+                .EndDict()
+            .Build();
 }
 /**
  * Вывод изображения
  */
 const json::Node JsonReader::PrintMap(const json::Node& request_map, RequestHandler& handler) {
     using namespace std::literals;
-    json::Dict result;
-    result["request_id"s] = request_map.AsMap().at("id"s).AsInt();
+    const int request_id = request_map.AsMap().at("id"s).AsInt();
     std::ostringstream strm;
     handler.RenderMap(strm);
-    result["map"s] = strm.str();
-    return json::Node{ result };
+    return json::Builder{}
+                .StartDict()
+                    .Key("request_id"s).Value(request_id)
+                    .Key("map"s).Value(strm.str())
+                .EndDict()
+            .Build();
 }

@@ -65,10 +65,15 @@ std::optional<transport::BusInfo> RequestHandler::GetBusStat(const std::string_v
 /**
  * Возвращает маршруты, проходящие через остановку
  */
-const std::unordered_set<transport::Bus*>* RequestHandler::GetBusesByStop(const std::string_view& stop_name) const {
+std::optional<std::vector<std::string>> RequestHandler::GetBusesByStop(const std::string_view& stop_name) const {
     const transport::Stop* stop = db_.FindStop(stop_name);
-    if (stop == nullptr) return nullptr;
-    return db_.GetBusesByStop(stop);
+    if (stop == nullptr) return std::nullopt;
+    const transport::StopInfo* buses = db_.GetBusesByStop(stop);
+    std::set<std::string> sorted_buses;
+    for (transport::Bus* bus : *buses) {
+        sorted_buses.emplace(bus->route);
+    }
+    return std::vector<std::string>(sorted_buses.begin(), sorted_buses.end());
 }
 /**
  * Отрисовка карты
