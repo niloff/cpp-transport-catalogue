@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include "transport_catalogue.h"
 #include "map_renderer.h"
+#include "transport_router.h"
 /**
  * Класс-фасад, упрощающий взаимодействие JSON reader-а
  * с другими подсистемами приложения.
@@ -13,7 +14,8 @@ public:
     /**
      * Конструктор
      */
-    RequestHandler(const renderer::MapRenderer& renderer);
+    RequestHandler(renderer::MapRenderer& renderer,
+                   transport::Router& router);
     /**
      * Добавить остановку в каталог
      */
@@ -42,10 +44,23 @@ public:
      * Отрисовка карты
      */
     void RenderMap(std::ostream &output) const;
-
+    /**
+     * Получить информацию об оптимальном маршруте между остановками
+     */
+    const std::optional<graph::Router<double>::RouteInfo>
+    GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const;
+    /**
+     * Граф
+     */
+    const graph::DirectedWeightedGraph<double>& GetRouterGraph() const;
+    /**
+     * Обновить данные агрегированных объектов
+     */
+    void UpdateInternalData();
 private:
     // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
     transport::Catalogue db_;
-    const renderer::MapRenderer& renderer_;
+    renderer::MapRenderer& renderer_;
+    transport::Router& router_;
 };
 

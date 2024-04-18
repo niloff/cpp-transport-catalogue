@@ -5,14 +5,61 @@ namespace renderer {
 bool IsZero(double value) {
     return std::abs(value) < EPSILON;
 }
+
+MapRenderer& MapRenderer::SetBuses(const std::vector<const transport::Bus*>& buses) {
+    buses_ = buses;
+    return *this;
+}
+
+MapRenderer& MapRenderer::SetStops(const std::vector<const transport::Stop*>& stops) {
+    stops_ = stops;
+    return *this;
+}
+/**
+ * Возвращает векторное изображение маршрутов каталога
+ */
+svg::Document MapRenderer::GetSVG() const {
+    const auto projector = BuildProjector();
+    svg::Document doc;
+    for (const auto& line : GetRouteLines(projector)) {
+        doc.Add(line);
+    }
+    for (const auto& text : GetRoutesLabels(projector)) {
+        doc.Add(text);
+    }
+    for (const auto& circle : GetStopsSymbols(projector)) {
+        doc.Add(circle);
+    }
+    for (const auto& text : GetStopsLabels(projector)) {
+        doc.Add(text);
+    }
+
+    return doc;
+}
+/**
+ * Возвращает проектор сферических координат на карту.
+ * Создается на основе координат остановок.
+ */
+SphereProjector MapRenderer::BuildProjector() const {
+    // извлекаем координаты
+    std::vector<geo::Coordinates> stops_coord(stops_.size());
+    for (size_t i = 0; i < stops_.size(); ++i) {
+        stops_coord[i] = stops_[i]->coordinates;
+    }
+    return {stops_coord.begin(),
+                stops_coord.end(),
+                render_settings_.width,
+                render_settings_.height,
+                render_settings_.padding };
+}
 /**
  * Возвращает ломаные линии маршрутов
  */
-std::vector<svg::Polyline> MapRenderer::GetRouteLines(const std::vector<const transport::Bus*>& buses, const SphereProjector& projector) const {
+std::vector<svg::Polyline> MapRenderer::GetRouteLines(const SphereProjector& projector) const {
     std::vector<svg::Polyline> route_lines;
-    route_lines.reserve(buses.size());
+    route_lines.reserve(buses_.size());
     size_t color_num = 0;
-    for (const auto& bus : buses) {
+    for (const auto& bus : buses_) {
         svg::Polyline line;
         for (const auto& stop : bus->stops) {
             line.AddPoint(projector(stop->coordinates));
@@ -31,11 +78,11 @@ std::vector<svg::Polyline> MapRenderer::GetRouteLines(const std::vector<const tr
 /**
  * Возвращает названия маршрутов
  */
-std::vector<svg::Text> MapRenderer::GetRoutesLabels(const std::vector<const transport::Bus*>& buses, const SphereProjector& projector) const {
+std::vector<svg::Text> MapRenderer::GetRoutesLabels(const SphereProjector& projector) const {
     std::vector<svg::Text> routes_labels;
-    routes_labels.reserve(buses.size());
+    routes_labels.reserve(buses_.size());
     size_t color_num = 0;
-    for (const auto& bus : buses) {
+    for (const auto& bus : buses_) {
         // подложка
         svg::Text underlayer;
         underlayer.SetData(bus->route)
@@ -76,10 +123,10 @@ std::vector<svg::Text> MapRenderer::GetRoutesLabels(const std::vector<const tran
 /**
  * Возвращает круги, обозначающие остановки
  */
-std::vector<svg::Circle> MapRenderer::GetStopsSymbols(const std::vector<const transport::Stop*>& stops, const SphereProjector& projector) const {
+std::vector<svg::Circle> MapRenderer::GetStopsSymbols(const SphereProjector& projector) const {
     std::vector<svg::Circle> stops_symbols;
-    stops_symbols.reserve(stops.size());
-    for (const auto& stop : stops) {
+    stops_symbols.reserve(stops_.size());
+    for (const auto& stop : stops_) {
         stops_symbols.push_back(svg::Circle()
                                 .SetCenter(projector(stop->coordinates))
                                 .SetRadius(render_settings_.stop_radius)
@@ -90,10 +137,10 @@ std::vector<svg::Circle> MapRenderer::GetStopsSymbols(const std::vector<const tr
 /**
  * Возвращает названия остановок
  */
-std::vector<svg::Text> MapRenderer::GetStopsLabels(const std::vector<const transport::Stop*>& stops, const SphereProjector& projector) const {
+std::vector<svg::Text> MapRenderer::GetStopsLabels(const SphereProjector& projector) const {
     std::vector<svg::Text> stops_labels;
-    stops_labels.reserve(stops.size());
-    for (const auto& stop : stops) {
+    stops_labels.reserve(stops_.size());
+    for (const auto& stop : stops_) {
         // подложка
         stops_labels.push_back(svg::Text()
                                .SetData(stop->name)
@@ -116,45 +163,6 @@ std::vector<svg::Text> MapRenderer::GetStopsLabels(const std::vector<const trans
                                .SetFillColor("black"));
     }
     return stops_labels;
-}
-/**
- * Возвращает векторное изображение маршрутов каталога
- */
-svg::Document MapRenderer::GetSVG(const std::vector<const transport::Bus*>& buses,
-                                  const std::vector<const transport::Stop*>& stops) const {
-    const auto projector = BuildProjector(stops);
-    svg::Document doc;
-    for (const auto& line : GetRouteLines(buses, projector)) {
-        doc.Add(line);
-    }
-    for (const auto& text : GetRoutesLabels(buses, projector)) {
-        doc.Add(text);
-    }
-    for (const auto& circle : GetStopsSymbols(stops, projector)) {
-        doc.Add(circle);
-    }
-    for (const auto& text : GetStopsLabels(stops, projector)) {
-        doc.Add(text);
-    }
-
-    return doc;
-}
-
-/**
- * Возвращает проектор сферических координат на карту.
- * Создается на основе координат остановок.
- */
-SphereProjector MapRenderer::BuildProjector(const std::vector<const transport::Stop*>& stops) const {
-    // извлекаем координаты
-    std::vector<geo::Coordinates> stops_coord(stops.size());
-    for (size_t i = 0; i < stops.size(); ++i) {
-        stops_coord[i] = stops[i]->coordinates;
-    }
-    return {stops_coord.begin(),
-                stops_coord.end(),
-                render_settings_.width,
-                render_settings_.height,
-                render_settings_.padding };
 }
 
 } // namespace renderer

@@ -17,6 +17,10 @@ class JsonReader {
      * Ключ запросов - Настройки рендеринга
      */
     static const char* KEY_RENDER_SETTINGS;
+    /**
+     * Ключ запросов - Настройки маршрутизации
+     */
+    static const char* KEY_ROUTING_SETTINGS;
 public:
     /**
      * Чтение данных из потока
@@ -34,6 +38,10 @@ public:
      * Получить считанные настройки для рендеринга
      */
     renderer::RenderSettings GetRenderSettings();
+    /**
+     * Получить считанные настройки для маршрутизации
+     */
+    transport::RoutingSettings GetRoutingSettings();
 private:
     /**
      * Получить запросы по ключу
@@ -51,6 +59,10 @@ private:
      * Вывод изображения
      */
     static const json::Node PrintMap(const json::Node& request_map, RequestHandler& handler);
+    /**
+     * Вывод оптимального маршрута
+     */
+    static const json::Node PrintRouting(const json::Node& request_map, RequestHandler& handler);
 private:
     /**
      * Считанные запросы

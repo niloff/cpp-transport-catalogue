@@ -2,8 +2,10 @@
 /**
  * Конструктор
  */
-RequestHandler::RequestHandler(const renderer::MapRenderer &renderer) :
-    renderer_(renderer) { }
+RequestHandler::RequestHandler(renderer::MapRenderer& renderer,
+                               transport::Router& router) :
+    renderer_(renderer),
+    router_(router) { }
 /**
  * Добавить остановку в каталог
  */
@@ -80,8 +82,31 @@ std::optional<std::vector<std::string>> RequestHandler::GetBusesByStop(const std
  */
 void RequestHandler::RenderMap(std::ostream& output) const {
     // подготавливаем необходимые данные
-    const auto& sorted_buses = db_.GetSortedBuses();
-    const auto& sorted_stops = db_.GetSortedStops();
-    auto doc = renderer_.GetSVG(sorted_buses, sorted_stops);
+    const auto& sorted_buses = db_.GetBuses();
+    const auto& sorted_stops = db_.GetStops();
+    auto doc = renderer_.GetSVG();
     doc.Render(output);
+}
+/**
+ * Получить информацию об оптимальном маршруте между остановками
+ */
+const std::optional<graph::Router<double>::RouteInfo>
+RequestHandler::GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const {
+    return router_.FindRoute(stop_from, stop_to);
+}
+/**
+ * Граф
+ */
+const graph::DirectedWeightedGraph<double>& RequestHandler::GetRouterGraph() const {
+    return router_.GetGraph();
+}
+/**
+ * Обновить данные агрегированных объектов
+ */
+void RequestHandler::UpdateInternalData() {
+    // подготавливаем необходимые данные
+    const auto& sorted_buses = db_.GetBuses();
+    const auto& sorted_stops = db_.GetStops();
+    renderer_.SetBuses(sorted_buses).SetStops(sorted_stops);
+    router_.BuildGraph(db_);
 }

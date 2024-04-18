@@ -59,13 +59,13 @@ const transport::StopInfo* Catalogue::GetBusesByStop(const Stop* stop) const {
  * Массив из отсортированных по номерам маршрутов.
  * Выводятся только непустые маршруты (с остановками)
  */
-const std::vector<const Bus*> Catalogue::GetSortedBuses() const {
+const std::vector<const Bus*> Catalogue::GetBuses(SortMode sort) const {
     std::map<std::string_view, const Bus*> sorted_buses(busname_to_bus_.begin(),
                                                         busname_to_bus_.end());
     std::vector<const Bus*> routes;
     routes.reserve(sorted_buses.size());
     for (const auto& [busname, bus] : sorted_buses) {
-        if (bus->stops.size() == 0) continue;
+        if (sort == SortMode::SORTED_NON_EMPTY && bus->stops.size() == 0) continue;
         routes.push_back(bus);
     }
     return routes;
@@ -74,14 +74,14 @@ const std::vector<const Bus*> Catalogue::GetSortedBuses() const {
  * Массив из отсортированных по наименованию остановок.
  * Выводятся только остановки, через которые проходит как минимум один маршрут.
  */
-const std::vector<const Stop*> Catalogue::GetSortedStops() const {
+const std::vector<const Stop*> Catalogue::GetStops(SortMode sort) const {
     std::map<std::string_view, const Stop*> sorted_stops(stopname_to_stop_.begin(),
                                                         stopname_to_stop_.end());
     std::vector<const Stop*> stops;
     stops.reserve(sorted_stops.size());
     for (const auto& [stopname, stop] : sorted_stops) {
         auto it = stop_to_buses_.find(stop);
-        if (it == stop_to_buses_.end() || it->second.empty()) continue;
+        if (sort == SortMode::SORTED_NON_EMPTY && (it == stop_to_buses_.end() || it->second.empty())) continue;
         stops.push_back(stop);
     }
     return stops;

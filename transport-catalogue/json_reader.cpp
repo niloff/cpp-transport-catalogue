@@ -17,6 +17,10 @@ const char* JsonReader::KEY_STAT_REQUESTS = "stat_requests";
  * Ключ запросов - Настройки рендеринга
  */
 const char* JsonReader::KEY_RENDER_SETTINGS = "render_settings";
+/**
+ * Ключ запросов - Настройки маршрутизации
+ */
+const char* JsonReader::KEY_ROUTING_SETTINGS = "routing_settings";
 
 namespace  {
 
@@ -131,6 +135,8 @@ void JsonReader::UploadData(RequestHandler& handler) {
         const auto& stops = RouteFromNode(command->at("stops"s), circular_route);
         handler.AddRoute(bus_number, stops, circular_route);
     }
+    // обновляем данные в инструментах
+    handler.UpdateInternalData();
 }
 /**
  * Возвращает статистику в соответствии с запросами
@@ -150,6 +156,9 @@ void JsonReader::PrintResponses(RequestHandler& handler, std::ostream &output) {
         }
         else if (type == "Map"s) {
             responses.emplace_back(PrintMap(request, handler).AsMap());
+        }
+        else if (type == "Route"s) {
+            responses.emplace_back(PrintRouting(request, handler).AsMap());
         }
     }
     json::Print(json::Document{ responses }, output);
@@ -180,6 +189,20 @@ renderer::RenderSettings JsonReader::GetRenderSettings() {
         render_settings.color_palette.emplace_back(ColorFromNode(color));
     }
     return render_settings;
+}
+/**
+ * Получить считанные настройки для маршрутизации
+ */
+transport::RoutingSettings JsonReader::GetRoutingSettings() {
+    const json::Node* settings = GetRequests(KEY_ROUTING_SETTINGS);
+    if (settings == nullptr) {
+        return {};
+    }
+    json::Dict settings_map = settings->AsMap();
+    transport::RoutingSettings routing_settings;
+    routing_settings.bus_wait_time = settings_map.at("bus_wait_time").AsInt();
+    routing_settings.bus_velocity = settings_map.at("bus_velocity").AsDouble();
+    return routing_settings;
 }
 /**
  * Получить запросы по ключу
@@ -252,6 +275,59 @@ const json::Node JsonReader::PrintMap(const json::Node& request_map, RequestHand
                 .StartDict()
                     .Key("request_id"s).Value(request_id)
                     .Key("map"s).Value(strm.str())
+                .EndDict()
+            .Build();
+}
+
+const json::Node JsonReader::PrintRouting(const json::Node& request_map, RequestHandler& handler) {
+    using namespace std::literals;
+    const int request_id = request_map.AsMap().at("id"s).AsInt();
+    const std::string_view stop_from = request_map.AsMap().at("from"s).AsString();
+    const std::string_view stop_to = request_map.AsMap().at("to"s).AsString();
+    const auto& routing = handler.GetOptimalRoute(stop_from, stop_to);
+
+    if (!routing) {
+        return json::Builder{}
+            .StartDict()
+                .Key("request_id"s).Value(request_id)
+                .Key("error_message"s).Value("not found"s)
+            .EndDict()
+        .Build();
+    }
+    json::Array items;
+    double total_time = 0.0;
+    items.reserve(routing.value().edges.size());
+    for (auto& edge_id : routing.value().edges) {
+        const graph::Edge<double> edge = handler.GetRouterGraph().GetEdge(edge_id);
+        if (edge.quantity == 0) {
+            items.emplace_back(json::Node(json::Builder{}
+                                            .StartDict()
+                                                .Key("stop_name"s).Value(edge.title)
+                                                .Key("time"s).Value(edge.weight)
+                                                .Key("type"s).Value("Wait"s)
+                                            .EndDict()
+                                          .Build()));
+
+            total_time += edge.weight;
+            continue;
+        }
+        items.emplace_back(json::Node(json::Builder{}
+                                        .StartDict()
+                                            .Key("bus"s).Value(edge.title)
+                                            .Key("span_count"s).Value(static_cast<int>(edge.quantity))
+                                            .Key("time"s).Value(edge.weight)
+                                            .Key("type"s).Value("Bus"s)
+                                        .EndDict()
+                                      .Build()));
+
+        total_time += edge.weight;
+    }
+
+    return json::Builder{}
+                .StartDict()
+                    .Key("request_id"s).Value(request_id)
+                    .Key("total_time"s).Value(total_time)
+                    .Key("items"s).Value(items)
                 .EndDict()
             .Build();
 }

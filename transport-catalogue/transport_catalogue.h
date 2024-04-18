@@ -18,6 +18,20 @@ namespace transport {
  */
 using StopInfo = std::unordered_set<Bus*>;
 /**
+ * Сортировка вывода информации
+ */
+enum SortMode {
+    /**
+     * Отсортировано лексикографически
+     */
+    SORTED = 0,
+    /**
+     * Отсортировано лексикографически и не пустое
+     */
+    SORTED_NON_EMPTY
+};
+
+/**
  * Каталог
  */
 class Catalogue {
@@ -52,12 +66,12 @@ public:
      * Массив из отсортированных по номерам маршрутов.
      * Выводятся только непустые маршруты (с остановками)
      */
-    const std::vector<const Bus*> GetSortedBuses() const;
+    const std::vector<const Bus*> GetBuses(SortMode sort = SORTED_NON_EMPTY) const;
     /**
      * Массив из отсортированных по наименованию остановок.
      * Выводятся только остановки, через которые проходит как минимум один маршрут.
      */
-    const std::vector<const Stop*> GetSortedStops() const;
+    const std::vector<const Stop*> GetStops(SortMode sort = SORTED_NON_EMPTY) const;
     /**
      * Установить расстояние между двумя остановками
      */

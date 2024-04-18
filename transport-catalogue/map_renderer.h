@@ -106,39 +106,43 @@ public:
      */
     MapRenderer(const RenderSettings& render_settings)
         : render_settings_(render_settings) { }
-    /**
-     * Возвращает ломаные линии маршрутов
-     */
-    std::vector<svg::Polyline> GetRouteLines(const std::vector<const transport::Bus*>& buses, const SphereProjector& projector) const;
-    /**
-     * Возвращает названия маршрутов
-     */
-    std::vector<svg::Text> GetRoutesLabels(const std::vector<const transport::Bus*>& buses, const SphereProjector& projector) const;
-    /**
-     * Возвращает круги, обозначающие остановки
-     */
-    std::vector<svg::Circle> GetStopsSymbols(const std::vector<const transport::Stop*>& stops, const SphereProjector& projector) const;
-    /**
-     * Возвращает названия остановок
-     */
-    std::vector<svg::Text> GetStopsLabels(const std::vector<const transport::Stop*>& stops, const SphereProjector& projector) const;
+
+    MapRenderer& SetBuses(const std::vector<const transport::Bus*>& buses);
+
+    MapRenderer& SetStops(const std::vector<const transport::Stop*>& stops);
     /**
      * Возвращает векторное изображение маршрутов каталога
      */
-    svg::Document GetSVG(const std::vector<const transport::Bus*>& buses,
-                         const std::vector<const transport::Stop*>& stops) const;
+    svg::Document GetSVG() const;
 private:
     /**
      * Возвращает проектор сферических координат на карту.
      * Создается на основе координат остановок.
      */
-    SphereProjector BuildProjector(const std::vector<const transport::Stop*>& stops) const;
-
+    SphereProjector BuildProjector() const;
+    /**
+     * Возвращает ломаные линии маршрутов
+     */
+    std::vector<svg::Polyline> GetRouteLines(const SphereProjector& projector) const;
+    /**
+     * Возвращает названия маршрутов
+     */
+    std::vector<svg::Text> GetRoutesLabels(const SphereProjector& projector) const;
+    /**
+     * Возвращает круги, обозначающие остановки
+     */
+    std::vector<svg::Circle> GetStopsSymbols(const SphereProjector& projector) const;
+    /**
+     * Возвращает названия остановок
+     */
+    std::vector<svg::Text> GetStopsLabels(const SphereProjector& projector) const;
 private:
     /**
      * Настройки рендеринга
      */
     const RenderSettings& render_settings_;
+    std::vector<const transport::Bus*> buses_;
+    std::vector<const transport::Stop*> stops_;
 };
 
 } // namespace renderer
