@@ -284,50 +284,46 @@ const json::Node JsonReader::PrintRouting(const json::Node& request_map, Request
     const int request_id = request_map.AsMap().at("id"s).AsInt();
     const std::string_view stop_from = request_map.AsMap().at("from"s).AsString();
     const std::string_view stop_to = request_map.AsMap().at("to"s).AsString();
-    const auto& routing = handler.GetOptimalRoute(stop_from, stop_to);
+    const auto& router_response = handler.GetOptimalRoute(stop_from, stop_to);
 
-    if (!routing) {
+    if (!router_response) {
         return json::Builder{}
-            .StartDict()
-                .Key("request_id"s).Value(request_id)
-                .Key("error_message"s).Value("not found"s)
-            .EndDict()
+        .StartDict()
+        .Key("request_id"s).Value(request_id)
+        .Key("error_message"s).Value("not found"s)
+        .EndDict()
         .Build();
     }
     json::Array items;
-    double total_time = 0.0;
-    items.reserve(routing.value().edges.size());
-    for (auto& edge_id : routing.value().edges) {
-        const graph::Edge<double> edge = handler.GetRouterGraph().GetEdge(edge_id);
-        if (edge.quantity == 0) {
+    items.reserve(router_response->route.size());
+    for (const auto& route : router_response->route) {
+        if (std::holds_alternative<transport::RouterResponse::Departure>(route)) {
+            const auto& departure = std::get<transport::RouterResponse::Departure>(route);
             items.emplace_back(json::Node(json::Builder{}
-                                            .StartDict()
-                                                .Key("stop_name"s).Value(edge.title)
-                                                .Key("time"s).Value(edge.weight)
-                                                .Key("type"s).Value("Wait"s)
-                                            .EndDict()
+                                          .StartDict()
+                                          .Key("stop_name"s).Value(departure.stop_name)
+                                          .Key("time"s).Value(departure.time)
+                                          .Key("type"s).Value("Wait"s)
+                                          .EndDict()
                                           .Build()));
-
-            total_time += edge.weight;
-            continue;
         }
-        items.emplace_back(json::Node(json::Builder{}
-                                        .StartDict()
-                                            .Key("bus"s).Value(edge.title)
-                                            .Key("span_count"s).Value(static_cast<int>(edge.quantity))
-                                            .Key("time"s).Value(edge.weight)
-                                            .Key("type"s).Value("Bus"s)
-                                        .EndDict()
-                                      .Build()));
-
-        total_time += edge.weight;
+        else if (std::holds_alternative<transport::RouterResponse::Route>(route)) {
+            const auto& bus_route = std::get<transport::RouterResponse::Route>(route);
+            items.emplace_back(json::Node(json::Builder{}
+                                          .StartDict()
+                                          .Key("bus"s).Value(bus_route.bus)
+                                          .Key("span_count"s).Value(static_cast<int>(bus_route.span_count))
+                                          .Key("time"s).Value(bus_route.time)
+                                          .Key("type"s).Value("Bus"s)
+                                          .EndDict()
+                                          .Build()));
+        }
     }
-
     return json::Builder{}
-                .StartDict()
-                    .Key("request_id"s).Value(request_id)
-                    .Key("total_time"s).Value(total_time)
-                    .Key("items"s).Value(items)
-                .EndDict()
-            .Build();
+    .StartDict()
+    .Key("request_id"s).Value(request_id)
+    .Key("total_time"s).Value(router_response->total_time)
+    .Key("items"s).Value(items)
+    .EndDict()
+    .Build();
 }

@@ -47,12 +47,8 @@ public:
     /**
      * Получить информацию об оптимальном маршруте между остановками
      */
-    const std::optional<graph::Router<double>::RouteInfo>
+    const std::optional<transport::RouterResponse>
     GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const;
-    /**
-     * Граф
-     */
-    const graph::DirectedWeightedGraph<double>& GetRouterGraph() const;
     /**
      * Обновить данные агрегированных объектов
      */

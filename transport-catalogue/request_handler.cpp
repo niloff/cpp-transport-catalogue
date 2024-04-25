@@ -90,15 +90,13 @@ void RequestHandler::RenderMap(std::ostream& output) const {
 /**
  * Получить информацию об оптимальном маршруте между остановками
  */
-const std::optional<graph::Router<double>::RouteInfo>
-RequestHandler::GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const {
-    return router_.FindRoute(stop_from, stop_to);
-}
-/**
- * Граф
- */
-const graph::DirectedWeightedGraph<double>& RequestHandler::GetRouterGraph() const {
-    return router_.GetGraph();
+const std::optional<transport::RouterResponse> RequestHandler::GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const {
+    const auto from = db_.FindStop(stop_from);
+    const auto to = db_.FindStop(stop_to);
+    if (to == nullptr || from == nullptr) {
+        return std::nullopt;
+    }
+    return router_.GetOptimalRoute(from, to);
 }
 /**
  * Обновить данные агрегированных объектов
@@ -108,5 +106,5 @@ void RequestHandler::UpdateInternalData() {
     const auto& sorted_buses = db_.GetBuses();
     const auto& sorted_stops = db_.GetStops();
     renderer_.SetBuses(sorted_buses).SetStops(sorted_stops);
-    router_.BuildGraph(db_);
+    router_.Build(db_);
 }

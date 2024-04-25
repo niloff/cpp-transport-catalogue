@@ -1,16 +1,51 @@
 #include "transport_router.h"
 
 namespace transport {
-
-const graph::DirectedWeightedGraph<double>& Router::BuildGraph(const Catalogue& catalogue) {
-    stop_ids_.clear();
+/**
+ * Сборка сервиса
+ */
+void Router::Build(const Catalogue& catalogue) {
     const auto& stops_sorted = catalogue.GetStops(SortMode::SORTED);
-    graph::DirectedWeightedGraph<double> stops_graph(stops_sorted.size() * 2);
+    graph_ = std::move(graph::DirectedWeightedGraph<double>(stops_sorted.size() * 2));
+    FillStops(std::move(stops_sorted));
+    FillBuses(catalogue);
+    router_ = std::make_unique<graph::Router<double>>(graph_);
+}
+/**
+ * Получить оптимальный маршрут
+ */
+std::optional<RouterResponse> Router::GetOptimalRoute(const Stop* from, const Stop* to) const {
+    const auto route = router_->BuildRoute(stop_ids_.at(from), stop_ids_.at(to));
+    if (!route) {
+        return std::nullopt;
+    }
+    RouterResponse response;
+    response.route.reserve(route->edges.size());
+    for (const auto edge_id : route->edges) {
+        const auto& edge = graph_.GetEdge(edge_id);
+        if (edge.quantity == 0) {
+            response.route.emplace_back(RouterResponse::Departure{std::string(edge.title),
+                                                                  edge.weight});
+        }
+        else {
+            response.route.emplace_back(RouterResponse::Route{std::string(edge.title),
+                                                              static_cast<int>(edge.quantity),
+                                                              edge.weight});
+        }
+        response.total_time += edge.weight;
+    }
+    return response;
+}
+/**
+ * Заполнить данные об остановках
+ */
+void Router::FillStops(const std::vector<const Stop*>& stops) {
+    stop_ids_.clear();
     graph::VertexId vertex_id = 0;
-    for (const auto stop_info : stops_sorted) {
-        stop_ids_[stop_info->name] = vertex_id;
-        stops_graph.AddEdge({
-                stop_info->name,
+    for (const auto stop : stops) {
+        stop_ids_[stop] = vertex_id;
+        graph_.AddEdge({
+                stop->name,
                 0,
                 vertex_id,
                 ++vertex_id,
@@ -18,8 +53,13 @@ const graph::DirectedWeightedGraph<double>& Router::BuildGraph(const Catalogue& 
             });
         ++vertex_id;
     }
-    const auto& buses_sorted = catalogue.GetBuses(SortMode::SORTED);
-    for (const auto bus : buses_sorted) {
+}
+/**
+ * Заполнить данные о маршрутах
+ */
+void Router::FillBuses(const Catalogue& catalogue) {
+    const auto& buses = catalogue.GetBuses(SortMode::SORTED);
+    for (const auto bus : buses) {
         const auto& bus_stops = bus->stops;
         auto stops_end = bus_stops.end();
         for (auto it_from = bus_stops.begin(); it_from != stops_end; ++it_from) {
@@ -30,28 +70,15 @@ const graph::DirectedWeightedGraph<double>& Router::BuildGraph(const Catalogue& 
                 const transport::Stop* stop_to = *it_to;
                 distance += catalogue.GetDistance(stop_prev, stop_to);
                 stop_prev = stop_to;
-                stops_graph.AddEdge({bus->route,
-                                     static_cast<size_t>(std::distance(it_from, it_to)),
-                                     ++stop_ids_.at(stop_from->name),
-                                     stop_ids_.at(stop_to->name),
-                                     static_cast<double>(distance) / (routing_settings_.bus_velocity * (100.0 / 6.0))
-                                    });
+                graph_.AddEdge({bus->route,
+                                static_cast<size_t>(std::distance(it_from, it_to)),
+                                stop_ids_.at(stop_from) + 1,
+                                stop_ids_.at(stop_to),
+                                (static_cast<double>(distance) / routing_settings_.bus_velocity) * KOEF_MINUTES_PER_METRES
+                               });
             }
         }
     }
-
-    graph_ = std::move(stops_graph);
-    router_ = std::make_unique<graph::Router<double>>(graph_);
-
-    return graph_;
-}
-
-const std::optional<graph::Router<double>::RouteInfo> Router::FindRoute(const std::string_view stop_from, const std::string_view stop_to) const {
-    return router_->BuildRoute(stop_ids_.at(std::string(stop_from)),stop_ids_.at(std::string(stop_to)));
-}
-
-const graph::DirectedWeightedGraph<double>& Router::GetGraph() const {
-    return graph_;
 }
 
 }
